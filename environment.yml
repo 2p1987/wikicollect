@@ -1,0 +1,16 @@
+name: wiki
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - requests
+  - jupyterlab
+  - ipykernel
+  - pip
+  - pip:
+    - wikipedia-API
+    - pytest
+    - black[jupyter]
+    - mypy
+    - flake8
+    - pre-commit
