@@ -14,3 +14,4 @@ dependencies:
     - mypy
     - flake8
     - pre-commit
+    - pyyaml
