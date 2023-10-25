@@ -6,6 +6,8 @@ dependencies:
   - requests
   - jupyterlab
   - ipykernel
+  - structlog
+  - tqdm
   - pip
   - pip:
     - wikipedia-API
@@ -15,3 +17,4 @@ dependencies:
     - flake8
     - pre-commit
     - pyyaml
+    - -e .
