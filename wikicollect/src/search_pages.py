@@ -4,6 +4,8 @@ from pathlib import Path
 import requests
 import yaml
 
+# TODO: add logging
+
 
 def search_wikipedia(srsearch, srlimit=100, language="en"):
     SEARCH_API_URL = f"https://{language}.wikipedia.org/w/api.php"
@@ -51,4 +53,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    search_wikipedia(args.srsearch, args.srlimit)
+    search_wikipedia(args.srsearch, args.srlimit, args.language)
