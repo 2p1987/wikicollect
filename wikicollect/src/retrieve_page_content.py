@@ -11,6 +11,10 @@ from wikicollect.src.retrieve_page_content_manager import (
 
 reload(ut)
 
+# set dir to root
+
+os.chdir(ut.find_repo_root())
+
 # ---- Constants
 
 METADATA_FOLDER = ut.return_path_if_exists(Path("wikicollect/data/metadata"))

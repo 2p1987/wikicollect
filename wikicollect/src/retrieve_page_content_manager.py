@@ -1,5 +1,6 @@
+import json
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import structlog
 import wikipediaapi
@@ -116,19 +117,17 @@ class ExportTextFromWiki:
         output_path (Path): Default path to store exported content.
 
     Methods:
-        retrieve_page(page_name: str) -> wikipediaapi.WikipediaPage:
+        _retrieve_page(page_name: str) -> wikipediaapi.WikipediaPage:
             Retrieves the Wikipedia page for a given page name.
-        export_page_title_and_text(wiki_page, page_name: str) -> str:
-            Constructs a string representation of a Wikipedia page with its
-            title and text content.
-        retrieve_search_concatenated_text(search_term: str) -> str:
-            Concatenates the text of all Wikipedia pages related to a search
-            term.
-        export_concatenated_text(text: str, text_output_path: Path) -> None:
-            Writes the concatenated text to a specified file.
+        _export_page_title_and_text(wiki_page, page_name: str) -> Tuple[str, str]:
+            Constructs a tuple containing the title and text content of a
+            Wikipedia page.
+        _retrieve_search_concatenated_text_to_ndjson(
+            search_term: str, text_output_path: Path) -> None:
+            Writes the text of all Wikipedia pages related to a search term to
+            an NDJSON file.
         retrieve_and_export_content(search_term: str) -> None:
-            Retrieves and exports the concatenated text for a given search
-            term.
+            Retrieves and exports the concatenated text for a given search term.
     """
 
     output_path = Path("wikicollect/data")
@@ -140,8 +139,7 @@ class ExportTextFromWiki:
         search_results: ListResultPages,
     ) -> None:
         """
-        Constructs all the necessary attributes for the ExportTextFromWiki
-        object.
+        Constructs all the necessary attributes for the ExportTextFromWiki object.
 
         Args:
             wiki_username (str): Username for Wikipedia API.
@@ -170,75 +168,54 @@ class ExportTextFromWiki:
         """
         return self.wiki_wiki.page(page_name)
 
-    def _export_page_title_and_text(self, wiki_page, page_name: str) -> str:
+    def _export_page_title_and_text(self, wiki_page, page_name: str) -> Tuple[str, str]:
         """
-        Constructs a string representation of a Wikipedia page with its title
-        and text content.
+        Constructs a tuple containing the title and text content of a Wikipedia page.
 
         Args:
             wiki_page (wikipediaapi.WikipediaPage): The Wikipedia page object.
             page_name (str): The name of the Wikipedia page.
 
         Returns:
-            str: The formatted string containing the page title and text.
+            Tuple[str, str]: The formatted title and the page text content.
         """
-        return (
-            "<s>\n"
-            + page_name.replace("_", " ").upper()
-            + "\n\n"
-            + wiki_page.text
-            + "</s>\n"
-        )
+        return page_name.replace("_", " ").lower(), wiki_page.text
 
-    def _retrieve_search_concatenated_text(self, search_term: str) -> str:
+    def _retrieve_search_concatenated_text_to_ndjson(
+        self, search_term: str, text_output_path: Path
+    ) -> None:
         """
-        Concatenates the text of all Wikipedia pages related to a search term.
+        Writes the text of all Wikipedia pages related to a search term to an
+        NDJSON file.
 
         Args:
             search_term (str): The search term to retrieve content for.
-
-        Returns:
-            str: The concatenated text of all related Wikipedia pages.
+            text_output_path (Path): The path to the output NDJSON file.
         """
-        pages = ""
-        for result in tqdm(self.search_results.results[search_term]):
-            wiki_page = self._retrieve_page(result["page_name"])
-            text_to_concat = self._export_page_title_and_text(
-                wiki_page, result["page_name"]
-            )
-            pages = pages + text_to_concat
-        return pages
+        with open(text_output_path, "w", encoding="utf-8") as file:
+            for result in tqdm(self.search_results.results[search_term]):
+                wiki_page = self._retrieve_page(result["page_name"])
+                title, text = self._export_page_title_and_text(
+                    wiki_page, result["page_name"]
+                )
 
-    def _export_concatenated_text(
-        self,
-        text: str,
-        text_output_path: Path,
-    ) -> None:
-        """
-        Writes the concatenated text to a specified file.
-
-        Args:
-            text (str): The text content to write.
-            text_output_path (Path): The path to the file to write the text to.
-        """
-        with open(text_output_path, "w") as f:
-            f.write(text)
+                # Create a dictionary and serialize to JSON.
+                json_obj = {"title": title, "content": text}
+                file.write(json.dumps(json_obj) + "\n")
 
     def retrieve_and_export_content(self, search_term: str) -> None:
         """
         Retrieves and exports the concatenated text for a given search term.
 
         Args:
-            search_term (str): The search term to retrieve and export content
-            for.
+            search_term (str): The search term to retrieve and export content for.
 
         Raises:
             ValueError: If the output file already exists.
         """
-        text_output_path = Path(self.output_path, f"{search_term}.txt")
+        text_output_path = Path(self.output_path, f"{search_term}.json")
         if text_output_path.exists():
             raise ValueError(f"Text output already exists at {text_output_path}")
         log.info(f"Retrieving content for search term {search_term}")
-        pages = self._retrieve_search_concatenated_text(search_term)
-        self._export_concatenated_text(pages, text_output_path)
+        self._retrieve_search_concatenated_text_to_ndjson(search_term, text_output_path)
         log.info(f"Export finished to {text_output_path}")
