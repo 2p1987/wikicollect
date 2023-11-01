@@ -2,7 +2,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from yaml import safe_load
+from yaml import safe_load  # type: ignore
 
 
 def find_repo_root():
