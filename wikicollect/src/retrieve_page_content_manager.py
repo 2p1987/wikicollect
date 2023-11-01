@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import structlog
 import wikipediaapi
@@ -53,7 +53,7 @@ class ListResultPages:
         self.metadata_path = metadata_path
         self.blacklist_path = blacklist_path
         self.searches_folder = searches_folder
-        self.filtered_search_results = None
+        self.filtered_search_results: Optional[Dict[str, List[Any]]] = None
 
     def create_filtered_search_results(self) -> None:
         """Loads the search results and blacklist, and filters the blacklisted
@@ -97,7 +97,7 @@ class ListResultPages:
     # account the result
 
     @property
-    def results(self) -> Dict[str, List[Dict[str, Any]]]:
+    def results(self) -> Optional[Dict[str, List[Dict[str, Any]]]]:
         """Returns the filtered search results."""
         return self.filtered_search_results
 
@@ -193,6 +193,8 @@ class ExportTextFromWiki:
             text_output_path (Path): The path to the output NDJSON file.
         """
         with open(text_output_path, "w", encoding="utf-8") as file:
+            if self.search_results.results is None:
+                raise ValueError("Search results is empty.")
             for result in tqdm(self.search_results.results[search_term]):
                 wiki_page = self._retrieve_page(result["page_name"])
                 title, text = self._export_page_title_and_text(
