@@ -1,10 +1,8 @@
 import argparse
 from pathlib import Path
 
-import requests
-import yaml
-
-# TODO: add logging
+import requests  # type: ignore
+import yaml  # type: ignore
 
 
 def search_wikipedia(srsearch, srlimit=100, language="en"):
@@ -29,7 +27,7 @@ def search_wikipedia(srsearch, srlimit=100, language="en"):
         }
         for item in search_result
     ]
-    metadata_directory = Path("data/metadata/searches")
+    metadata_directory = Path("wikicollect/data/metadata/searches")
     metadata_directory.mkdir(parents=True, exist_ok=True)
     with open(Path(metadata_directory, f"""{params["srsearch"]}.yaml"""), "w") as f:
         yaml.dump(transformed_search_results, f, default_flow_style=False)
