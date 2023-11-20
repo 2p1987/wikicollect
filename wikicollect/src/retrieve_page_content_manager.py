@@ -64,6 +64,8 @@ class ListResultPages:
         log.info("Black list loaded.")
         self.filter_blacklisted_pages()
         log.info("Search results filtered.")
+        self.deduplicate_search_results()
+        log.info("Search results deduplicated.")
 
     def load_search_results(self) -> None:
         """Loads the search results from the searches_folder."""
@@ -81,20 +83,32 @@ class ListResultPages:
 
     def filter_blacklisted_pages(self) -> None:
         """Filters out the blacklisted pages from the search results."""
-        filtered_search_results = {}
+        filtered_search_results_with_duplicates = {}
         for search_term, results in self.searches_results.items():
             filtered_results = [
                 result
                 for result in results
                 if result["page_name"] not in self.blacklist[search_term]
             ]
+            filtered_search_results_with_duplicates[search_term] = filtered_results
+        self.filtered_search_results_with_duplicates = (
+            filtered_search_results_with_duplicates
+        )
+
+    def deduplicate_search_results(self):
+        filtered_search_results = {}
+        page_ids = []
+        for (
+            search_term,
+            results,
+        ) in self.filtered_search_results_with_duplicates.items():
+            filtered_results = []
+            for result in results:
+                if result["page_id"] not in page_ids:
+                    filtered_results.append(result)
+                    page_ids.append(result["page_id"])
             filtered_search_results[search_term] = filtered_results
         self.filtered_search_results = filtered_search_results
-
-    # TODO: do a waterfall deduplication based on the page_ids
-    # collect pages ids in the filtered results (count dict?)
-    # if page_id already exist when results are screened, do not take into
-    # account the result
 
     @property
     def results(self) -> Optional[Dict[str, List[Dict[str, Any]]]]:
