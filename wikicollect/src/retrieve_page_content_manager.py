@@ -53,7 +53,7 @@ class ListResultPages:
         self.metadata_path = metadata_path
         self.blacklist_path = blacklist_path
         self.searches_folder = searches_folder
-        self.filtered_search_results: Optional[Dict[str, List[Any]]] = None
+        self.filtered_searches: Optional[Dict[str, List[Any]]] = None
 
     def create_filtered_search_results(self) -> None:
         """Loads the search results and blacklist, and filters the blacklisted
@@ -83,37 +83,38 @@ class ListResultPages:
 
     def filter_blacklisted_pages(self) -> None:
         """Filters out the blacklisted pages from the search results."""
-        filtered_search_results_with_duplicates = {}
+        filtered_searches_with_dup = {}
         for search_term, results in self.searches_results.items():
             filtered_results = [
                 result
                 for result in results
                 if result["page_name"] not in self.blacklist[search_term]
             ]
-            filtered_search_results_with_duplicates[search_term] = filtered_results
-        self.filtered_search_results_with_duplicates = (
-            filtered_search_results_with_duplicates
-        )
+            filtered_searches_with_dup[search_term] = filtered_results
+        self.filtered_searches_with_dup = filtered_searches_with_dup
+        # NB: we have no guarantee regarding the order of the results
+        # so deduplicating implies to relaunch the whole retrieval
+        # TODO: improve the deduplication process
 
     def deduplicate_search_results(self):
-        filtered_search_results = {}
+        filtered_searches = {}
         page_ids = []
         for (
             search_term,
             results,
-        ) in self.filtered_search_results_with_duplicates.items():
+        ) in self.filtered_searches_with_dup.items():
             filtered_results = []
             for result in results:
                 if result["page_id"] not in page_ids:
                     filtered_results.append(result)
                     page_ids.append(result["page_id"])
-            filtered_search_results[search_term] = filtered_results
-        self.filtered_search_results = filtered_search_results
+            filtered_searches[search_term] = filtered_results
+        self.filtered_searches = filtered_searches
 
     @property
     def results(self) -> Optional[Dict[str, List[Dict[str, Any]]]]:
         """Returns the filtered search results."""
-        return self.filtered_search_results
+        return self.filtered_searches
 
 
 class ExportTextFromWiki:
@@ -235,3 +236,18 @@ class ExportTextFromWiki:
         log.info(f"Retrieving content for search term {search_term}")
         self._retrieve_search_concatenated_text_to_ndjson(search_term, text_output_path)
         log.info(f"Export finished to {text_output_path}")
+
+
+if __name__ == "__main__":
+    METADATA_FOLDER = ut.return_path_if_exists(Path("wikicollect/data/metadata"))
+    SEARCHES_FOLDER = ut.return_path_if_exists(Path(METADATA_FOLDER, "searches"))
+    BLACKLIST_PATH = ut.return_path_if_exists(
+        Path(METADATA_FOLDER, "page_blacklist.yaml")
+    )
+    list = ListResultPages(
+        metadata_path=METADATA_FOLDER,
+        blacklist_path=BLACKLIST_PATH,
+        searches_folder=SEARCHES_FOLDER,
+    )
+    list.create_filtered_search_results()
+    results = list.results
