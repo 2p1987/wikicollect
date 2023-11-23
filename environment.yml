@@ -9,12 +9,15 @@ dependencies:
   - structlog
   - tqdm
   - pip
+  - numpy
+  - pandas
+  - datasets
+  - mypy
+  - black[jupyter]
+  - flake8
+  - pre-commit
+  - pytest
+  - pyyaml
   - pip:
     - wikipedia-API
-    - pytest
-    - black[jupyter]
-    - mypy
-    - flake8
-    - pre-commit
-    - pyyaml
     - -e .
