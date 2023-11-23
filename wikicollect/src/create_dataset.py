@@ -25,20 +25,13 @@ DATA_FOLDER = ut.return_path_if_exists(Path("wikicollect/data"))
 
 
 def load_ndjson_to_dataset(folder_path: Path) -> DatasetDict:
-    dataset_dict = {}
+    data = []
 
     for file_path in folder_path.glob("*.json"):
         with open(file_path, "r", encoding="utf-8") as f:
-            data = [json.loads(line) for line in f]
-        dataset_dict[file_path.name.replace(".json", "")] = Dataset.from_pandas(
-            pd.DataFrame(data)
-        )
+            data.extend([json.loads(line) for line in f])
 
-    return DatasetDict(dataset_dict)
-
-
-def save_dataset_locally(dataset: DatasetDict, folder_path: Path) -> None:
-    dataset.save_to_disk(folder_path)
+    return DatasetDict({"train": Dataset.from_pandas(pd.DataFrame(data))})
 
 
 # ---- Main
@@ -48,5 +41,5 @@ if __name__ == "__main__":
     # Now you are authenticated and can use the Hugging Face API
     dataset = load_ndjson_to_dataset(DATA_FOLDER)
     log.info(f"Dataset created with {len(dataset)} entries")
-    save_dataset_locally(dataset, Path(DATA_FOLDER, "dataset"))
-    log.info("Dataset saved locally")
+    dataset.push_to_hub("pierre-pessarossi/wikipedia-climate-data")
+    log.info("Dataset pushed to hub")
